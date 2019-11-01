@@ -1,1 +1,1 @@
-The PyTorch source code for our paper "Progressive Reconstruction of Visual Structure for Image Inpainting" will be released in early december. Currently we are cleaning the code and enhancing the readibility.
+The PyTorch source code for our paper "Progressive Reconstruction of Visual Structure for Image Inpainting" will be released in early December. Currently we are cleaning the code and enhancing the readibility.
