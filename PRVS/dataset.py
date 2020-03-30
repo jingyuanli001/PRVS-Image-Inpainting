@@ -23,9 +23,7 @@ class Dataset(torch.utils.data.Dataset):
 
         self.input_size = opt.img_size
         self.sigma = opt.sigma
-        self.edge = opt.edge
         self.mask = opt.mask
-        self.nms = opt.nms
         self.mask_reverse = mask_reverse
 
         # in test mode, there's a one-to-one relationship between mask and image
@@ -74,78 +72,36 @@ class Dataset(torch.utils.data.Dataset):
             img_gray = img_gray[:, ::-1, ...]
             edge = edge[:, ::-1, ...]
             mask = mask[:, ::-1, ...]
-
-        return self.to_tensor(img), self.to_tensor(img_gray), self.to_tensor(edge), self.to_tensor(mask)
+        if self.training:
+            return self.to_tensor(img), self.to_tensor(img_gray), self.to_tensor(edge), self.to_tensor(mask)
+        else:
+            return self.to_tensor(img), self.to_tensor(img_gray), self.to_tensor(edge)*self.to_tensor(mask), self.to_tensor(mask)
 
     def load_edge(self, img, index, mask):
         sigma = self.sigma
 
         # in test mode images are masked (with masked regions), 
         # using 'mask' parameter prevents canny to detect edges for the masked regions
-        mask = None if self.training else (mask / 255).astype(np.bool)
-
         # canny 
-        if self.edge == 1:
-            # no edge
-            if sigma == -1:
-                return np.zeros(img.shape).astype(np.float)
-            
-            # random sigma
-            if sigma == 0:
-                sigma = random.randint(1, 4)
-            return canny(img, sigma=sigma).astype(np.float)*mask
-
-        # external
-        else:
-            imgh, imgw = img.shape[0:2]
-            edge = imread(self.edge_data[index])
-            edge = self.resize(edge, imgh, imgw)
-
-            # non-max suppression
-            if self.nms == 1:
-                edge = edge * canny(img, sigma=sigma, mask=mask)
-
-            return edge
+        if sigma == -1:
+            return np.zeros(img.shape).astype(np.float)
+        
+        # random sigma
+        if sigma == 0:
+            sigma = random.randint(1, 4)
+        return canny(img, sigma=sigma).astype(np.float)
 
     def load_mask(self, img, index):
         imgh, imgw = img.shape[0:2]
         mask_type = self.mask
-
         # external + random block
-        if mask_type == 4:
-            mask_type = 1 if np.random.binomial(1, 0.5) == 1 else 3
-
-        # external + random block + half
-        elif mask_type == 5:
-            mask_type = np.random.randint(1, 4)
-
-        # random block
-        if mask_type == 1:
-            return create_mask(imgw, imgh, imgw // 2, imgh // 2)
-
-        # half
-        if mask_type == 2:
-            # randomly choose right or left
-            return create_mask(imgw, imgh, imgw // 2, imgh, 0 if random.random() < 0.5 else imgw // 2, 0)
-
         # external
-        if mask_type == 3:
+        if mask_type == 0:
             mask_index = random.randint(0, len(self.mask_data) - 1)
             mask = imread(self.mask_data[mask_index])
             mask = self.resize(mask, imgh, imgw)
 
             mask = (mask > 0).astype(np.uint8)       # threshold due to interpolation
-            if self.mask_reverse:
-                return (1 - mask) * 255
-            else:
-                return mask * 255
-
-        # test mode: load mask non random
-        if mask_type == 6:
-            mask = imread(self.mask_data[index])
-            mask = self.resize(mask, imgh, imgw, centerCrop=False)
-            mask = rgb2gray(mask)
-            mask = (mask > 0).astype(np.uint8)
             if self.mask_reverse:
                 return (1 - mask) * 255
             else:

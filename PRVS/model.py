@@ -108,7 +108,7 @@ class PRVSNetFull():
             epoch += 1
             print("epoch: {:d}".format(epoch))
             for items in train_loader:
-                i += self.opt.batch_size
+                i += 1
                 gt_images, gray_image, gt_edges, masks = self.cuda(*items)
               #  masks = torch.cat([masks]*3, dim = 1)
                 self.gray_image = gray_image
@@ -122,7 +122,7 @@ class PRVSNetFull():
                 if i % self.opt.log_interval == 0:
                     e_time = time.time()
                     int_time = e_time - s_time
-                    print("epoch:{:d}, iteration:{:d}".format(epoch, i), ", l1_loss:", self.l1_loss*self.opt.batch_size/self.opt.log_interval, ", time_taken:", int_time)
+                    print("epoch:{:d}, iteration:{:d}".format(epoch, i), ", l1_loss:", self.l1_loss/self.opt.log_interval, ", time_taken:", int_time)
                     writer.add_scalars("loss_val", {"l1_loss":self.l1_loss*self.opt.batch_size/self.opt.log_interval, "D_loss":self.D_loss/self.opt.log_interval,"E_loss":self.E_loss*self.opt.batch_size/self.opt.log_interval}, i)
                     masked_images = masked_images.cpu()
                     fake_images = self.fake_B.cpu()

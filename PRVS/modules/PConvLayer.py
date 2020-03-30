@@ -1,5 +1,6 @@
 from modules.partialconv2d import PartialConv2d
 import torch.nn as nn
+import torch.nn.functional as F
 PartialConv = PartialConv2d
 
 class PConvLayer(nn.Module):
@@ -15,7 +16,7 @@ class PConvLayer(nn.Module):
         else:
             self.conv = PartialConv(in_ch, out_ch, 3, 1, 1, bias=conv_bias, multi_channel = True)
         if deconv:
-            self.deconv = nn.ConvTranspose2d(out_ch, out_ch, 4, 2, 1)
+            self.deconv = nn.ConvTranspose2d(out_ch, out_ch, 4, 2, 1, bias = conv_bias)
         else:
             self.deconv = None
         if bn:
@@ -33,4 +34,5 @@ class PConvLayer(nn.Module):
             h = self.bn(h)
         if hasattr(self, 'activation'):
             h = self.activation(h)
+        h_mask = F.interpolate(h_mask, size = h.size()[2:])
         return h, h_mask

@@ -116,7 +116,7 @@ class Bottleneck(nn.Module):
         return out
 
 class PRVSNet(BaseNetwork):
-    def __init__(self, layer_size=8, input_channels=3, PA = True, SA = False):
+    def __init__(self, layer_size=8, input_channels=3):
         super().__init__()
         self.freeze_enc_bn = False
         self.layer_size = layer_size
@@ -133,8 +133,8 @@ class PRVSNet(BaseNetwork):
             setattr(self, name, PConvLayer(512 + 512, 512, activ='leaky', deconv = True))
         self.dec_4 = PConvLayer(512 + 256, 256, activ='leaky', deconv = True)
         self.dec_3 = PConvLayer(256 + 128, 128, activ='leaky', deconv = True)
-        self.dec_2 = VSRLayer(128 + 64, 64, activation='leaky', deconv = True)
-        self.dec_1 = VSRLayer(64 + input_channels, 64, activation = None, batch_norm = False, deconv = True)
+        self.dec_2 = VSRLayer(128 + 64, 64, stride = 1, activation='leaky', deconv = True)
+        self.dec_1 = VSRLayer(64 + input_channels, 64, stride = 1, activation = None, batch_norm = False)
         self.resolver = Bottleneck(64,16)
         self.output = nn.Conv2d(128, 3, 1)
         self.att = lambda x:x
@@ -143,7 +143,7 @@ class PRVSNet(BaseNetwork):
         h_dict = {}  # for the output of enc_N
         h_mask_dict = {}  # for the output of enc_N
         h_edge_list = []
-        h_mask_dict['h_0'] = input, input_mask
+        h_dict['h_0'], h_mask_dict['h_0'] = input, input_mask
         edge = input_edge
 
         h_key_prev = 'h_0'
@@ -160,11 +160,11 @@ class PRVSNet(BaseNetwork):
         h_key = 'h_{:d}'.format(self.layer_size)
         h, h_mask = h_dict[h_key], h_mask_dict[h_key]
         h = self.deconv(h)
+        h_mask = F.interpolate(h_mask, scale_factor = 2)
         
         for i in range(self.layer_size, 0, -1):
             enc_h_key = 'h_{:d}'.format(i - 1)
             dec_l_key = 'dec_{:d}'.format(i)
-            h_mask = F.interpolate(h_mask, scale_factor=2, mode='nearest')
             h_mask = torch.cat([h_mask, h_mask_dict[enc_h_key]], dim = 1)
             h = torch.cat([h, h_dict[enc_h_key]], dim = 1)
             if i not in [2, 1]:

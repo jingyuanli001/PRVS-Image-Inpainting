@@ -55,8 +55,8 @@ class EdgeGenerator(nn.Module):
 class VSRLayer(nn.Module):
     def __init__(self, in_channel, out_channel, stride = 2, kernel_size = 3, batch_norm = True, activation = "ReLU", deconv = False):
         super(VSRLayer, self).__init__()
-        self.edge_generator = EdgeGenerator(in_channel, kernel_size = kernel_size)
-        self.feat_rec = PartialConv(in_channel+1, out_channel, stride = stride, kernel_size = 3)
+        self.edge_generator = EdgeGenerator(in_channel, kernel_s = kernel_size)
+        self.feat_rec = PartialConv(in_channel+1, out_channel, stride = stride, kernel_size = kernel_size, padding = kernel_size//2, multi_channel = True)
         if deconv:
             self.deconv = nn.ConvTranspose2d(out_channel, out_channel, 4, 2, 1)
         else:
@@ -76,10 +76,14 @@ class VSRLayer(nn.Module):
         else:
             self.activation = lambda x:x
     
-    def forward(self, feat_in, edge_in, mask_in):
-        edge_updated, mask_updated = self.edge_generator(torch.cat([feat_in, edge_in], dim = 1), mask_in)
-        edge_reconstructed = edge_in * mask_in + edge_updated * (mask_updated - mask_in)
-        feat_out, _ = self.feat_rec(torch.cat([feat_in, edge_reconstructed], dim = 1), torch.cat([mask_in, mask_updated], dim = 1))
+    def forward(self, feat_in, mask_in, edge_in):
+        edge_in = F.interpolate(edge_in, size = feat_in.size()[2:])
+        edge_updated, mask_updated = self.edge_generator(torch.cat([feat_in, edge_in], dim = 1), torch.cat([mask_in, mask_in[:,:1,:,:]], dim = 1))
+        edge_reconstructed = edge_in * mask_in[:,:1,:,:] + edge_updated * (mask_updated[:,:1,:,:] - mask_in[:,:1,:,:])
+        feat_out, feat_mask = self.feat_rec(torch.cat([feat_in, edge_reconstructed], dim = 1), torch.cat([mask_in, mask_updated[:,:1,:,:]], dim = 1))
         feat_out = self.deconv(feat_out)
-        mask_out = F.interpolate(mask_updated, scale_factor = 1/self.stride)
-        return feat_out, mask_out, edge_reconstructed
+        feat_out = self.batchnorm(feat_out)
+        feat_out = self.activation(feat_out)
+        mask_updated = F.interpolate(mask_updated, size = feat_out.size()[2:])
+        feat_mask = F.interpolate(feat_mask, size = feat_out.size()[2:])
+        return feat_out, feat_mask*mask_updated[:,0:1,:,:], edge_reconstructed

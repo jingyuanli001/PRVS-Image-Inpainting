@@ -1,6 +1,6 @@
 import argparse
 import os
-from model import EdgeUNetFull
+from model import PRVSNetFull
 
 def test():
     parser = argparse.ArgumentParser()
@@ -59,7 +59,7 @@ def test():
         os.makedirs(args.log_dir)
         
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
-    model = EdgeUNetFull(args)
+    model = PRVSNetFull(args)
     model.test()
 
 if __name__ == '__main__':
