@@ -2,6 +2,7 @@ import math
 from modules.partialconv2d import PartialConv2d
 from modules.PConvLayer import PConvLayer
 from modules.VSRLayer import VSRLayer
+import modules.Attention as Attention
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -98,27 +99,22 @@ class Bottleneck(nn.Module):
 
     def forward(self, x):
         residual = x
-
         out = self.conv1(x)
         out = self.bn1(out)
         out = self.relu(out)
-
         out = self.conv2(out)
         out = self.bn2(out)
         out = self.relu(out)
-
         out = self.conv3(out)
         out = self.bn3(out)
-
         out += residual
         out = self.relu(out)
 
         return out
 
 class PRVSNet(BaseNetwork):
-    def __init__(self, layer_size=8, input_channels=3):
+    def __init__(self, layer_size=8, input_channels=3, att = False):
         super().__init__()
-        self.freeze_enc_bn = False
         self.layer_size = layer_size
         self.enc_1 = VSRLayer(3, 64, kernel_size = 7)
         self.enc_2 = VSRLayer(64, 128, kernel_size = 5)
@@ -132,12 +128,15 @@ class PRVSNet(BaseNetwork):
             name = 'dec_{:d}'.format(i + 1)
             setattr(self, name, PConvLayer(512 + 512, 512, activ='leaky', deconv = True))
         self.dec_4 = PConvLayer(512 + 256, 256, activ='leaky', deconv = True)
+        if att:
+            self.att = Attention.AttentionModule()
+        else:
+            self.att = lambda x:x
         self.dec_3 = PConvLayer(256 + 128, 128, activ='leaky', deconv = True)
         self.dec_2 = VSRLayer(128 + 64, 64, stride = 1, activation='leaky', deconv = True)
         self.dec_1 = VSRLayer(64 + input_channels, 64, stride = 1, activation = None, batch_norm = False)
         self.resolver = Bottleneck(64,16)
         self.output = nn.Conv2d(128, 3, 1)
-        self.att = lambda x:x
         
     def forward(self, input, input_mask, input_edge):
         h_dict = {}  # for the output of enc_N
@@ -180,9 +179,9 @@ class PRVSNet(BaseNetwork):
         h_out = self.output(h_out)
         return h_out, h_mask, h_edge_list[-2], h_edge_list[-1]
 
-    def train(self, mode=True):
+    def train(self, mode=True, finetune = False):
         super().train(mode)
-        if self.freeze_enc_bn:
+        if finetune:
             for name, module in self.named_modules():
                 if isinstance(module, nn.BatchNorm2d) and 'enc' in name:
                     module.eval()
