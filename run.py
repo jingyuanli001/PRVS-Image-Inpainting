@@ -12,7 +12,8 @@ def run():
     parser.add_argument('--result_save_path', type=str, default='results')
     parser.add_argument('--target_size', type=int, default=256)
     parser.add_argument('--mask_mode', type=int, default=0)
-    parser.add_argument('--model_path', type=str, default="checkpoint/100000.pth")
+    parser.add_argument('--g_path', type=str, default="checkpoint/100000.pth")
+    parser.add_argument('--d_path', type=str, default="checkpoint/100000.pth")
     parser.add_argument('--batch_size', type=int, default=6)
     parser.add_argument('--n_threads', type=int, default=6)
     parser.add_argument('--finetune', action='store_true')
@@ -23,12 +24,12 @@ def run():
     os.environ["CUDA_VISIBLE_DEVICES"] = args.gpu_id
     model = PRVSModel()
     if args.test:
-        model.initialize_model(args.model_path, False)
+        model.initialize_model(args.g_path, train = False)
         model.cuda()
         dataloader = DataLoader(Dataset(args.data_root, args.mask_root, args.mask_mode, args.target_size, mask_reverse = True))
         model.test(dataloader, args.result_save_path)
     else:
-        model.initialize_model(args.model_path, True)
+        model.initialize_model(args.g_path, args.d_path, train = True)
         model.cuda()
         dataloader = DataLoader(Dataset(args.data_root, args.mask_root, args.mask_mode, args.target_size, mask_reverse = True), batch_size = args.batch_size, shuffle = True, num_workers = args.n_threads)
         model.train(dataloader, args.model_save_path, args.finetune)

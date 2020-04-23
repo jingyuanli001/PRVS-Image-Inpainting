@@ -37,7 +37,7 @@ class PRVSModel():
         try:
             start_iter = load_ckpt(path_g, [('generator', self.G)], [('optimizer_G', self.optm_G)])
             if train:
-                start_iter = load_ckpt(path_d, [('D', self.D)], [('optimizer_D', self.optm_D)])
+                start_iter = load_ckpt(path_d, [('discriminator', self.D)], [('optimizer_D', self.optm_D)])
                 self.optm_G = optim.Adam(self.G.parameters(), lr = 2e-4)
                 self.optm_D = optim.Adam(self.D.parameters(), lr = 2e-5)
                 self.iter = start_iter
@@ -85,10 +85,11 @@ class PRVSModel():
                     s_time = time.time()
                     self.l1_loss_val = 0.0
                 
-                if self.iter % 10 == 0:
+                if self.iter % 40000 == 0:
                     if not os.path.exists('{:s}'.format(save_path)):
                         os.makedirs('{:s}'.format(save_path))
                     save_ckpt('{:s}/g_{:d}.pth'.format(save_path, self.iter ), [('generator', self.G)], [('optimizer_G', self.optm_G)], self.iter )
+                    save_ckpt('{:s}/d_{:d}.pth'.format(save_path, self.iter ), [('discriminator', self.D)], [('optimizer_D', self.optm_D)], self.iter )
         
     def test(self, test_loader, result_save_path):
         self.G.eval()
