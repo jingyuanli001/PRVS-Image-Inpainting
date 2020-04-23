@@ -1,11 +1,17 @@
 # Progressive Reconstruction of Visual Structure for Image Inpainting
 ## Requirements
 Python >= 3.5
+
 PyTorch >= 1.0.0
+
 Opencv2 ==3.4.1
+
 Scipy == 1.1.0
+
 Numpy == 1.14.3
+
 Scikit-image (skimage) == 0.13.1
+
 This is the environment for our experiments. Later versions of these packages might need a few modifications of the code and it could lead to a decay of the performance (We are still checking this).
 
 ## Running the program
@@ -53,17 +59,27 @@ python run.py --test
 ```
 ## Building your own method
 To modify the method or build your own method based on this code, you can do this by changing the PRVSNet.py and model.py files.
+
 For example, to change the training target for generator, you can modify the get_g_loss method in model.py.
+
 ## Improving the code
 Since this code is a rewrite version of our original experiment code, we haven't tested the thoroughly and there might exist some bugs. We will keep improving this code.
 ## Citation
 @InProceedings{Li_2019_ICCV,
+
 author = {Li, Jingyuan and He, Fengxiang and Zhang, Lefei and Du, Bo and Tao, Dacheng},
+
 title = {Progressive Reconstruction of Visual Structure for Image Inpainting},
+
 booktitle = {The IEEE International Conference on Computer Vision (ICCV)},
+
 month = {October},
+
 year = {2019}
+
 } 
+
 ## Paper
 To get the original copy of our paper, please go to:
+
 http://openaccess.thecvf.com/content_ICCV_2019/html/Li_Progressive_Reconstruction_of_Visual_Structure_for_Image_Inpainting_ICCV_2019_paper.html
